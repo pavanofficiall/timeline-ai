@@ -1,0 +1,104 @@
+{
+  "events": [
+    {
+      "date": "2024-01-10",
+      "title": "Master Service Agreement signed",
+      "description": "Parties execute MSA for IT services",
+      "parties": ["Alpha Pvt Ltd", "Beta LLP"],
+      "documentRefs": ["MSA-2024.pdf"],
+      "payments": [],
+      "location": "Mumbai",
+      "confidence": 0.95
+    },
+    {
+      "date": "2024-02-05",
+      "title": "Purchase Order issued",
+      "description": "PO for Phase-1 development",
+      "parties": ["Beta LLP"],
+      "documentRefs": ["PO-001.pdf"],
+      "payments": [
+        { "amount": "₹2,50,000", "currency": "INR", "date": "2024-02-07", "payer": "Beta LLP", "payee": "Alpha Pvt Ltd" }
+      ],
+      "confidence": 0.9
+    },
+    {
+      "date": "2024-03-01",
+      "title": "Kickoff meeting",
+      "description": "Project kickoff and scope confirmation",
+      "parties": ["Alpha Pvt Ltd", "Beta LLP"],
+      "documentRefs": [],
+      "payments": [],
+      "confidence": 0.85
+    },
+    {
+      "date": "2024-04-12",
+      "title": "Invoice #INV-101 raised",
+      "description": "Alpha issues first invoice for Phase-1",
+      "parties": ["Alpha Pvt Ltd"],
+      "documentRefs": ["INV-101.pdf"],
+      "payments": [
+        { "amount": "₹2,50,000", "currency": "INR", "date": "2024-04-20", "payer": "Beta LLP", "payee": "Alpha Pvt Ltd", "reference": "NEFT-123" }
+      ],
+      "confidence": 0.9
+    },
+    {
+      "date": "2024-05-05",
+      "title": "Change Request submitted",
+      "description": "Scope change for additional reports",
+      "parties": ["Beta LLP"],
+      "documentRefs": ["CR-05.pdf"],
+      "payments": [],
+      "confidence": 0.8
+    },
+    {
+      "date": "2024-06-10",
+      "title": "Delay notice issued",
+      "description": "Alpha notifies delay due to dependency issues",
+      "parties": ["Alpha Pvt Ltd"],
+      "documentRefs": ["DelayNotice-06.pdf"],
+      "payments": [],
+      "confidence": 0.75
+    },
+    {
+      "date": "2024-07-01",
+      "title": "Breach notice",
+      "description": "Beta alleges breach for missed milestones",
+      "parties": ["Beta LLP"],
+      "documentRefs": ["Breach-Notice-07.pdf"],
+      "payments": [],
+      "confidence": 0.7
+    },
+    {
+      "date": "2024-07-15",
+      "title": "Cure notice response",
+      "description": "Alpha submits plan to cure breach",
+      "parties": ["Alpha Pvt Ltd"],
+      "documentRefs": ["Cure-Response-15.pdf"],
+      "payments": [],
+      "confidence": 0.8
+    },
+    {
+      "date": "2024-08-05",
+      "title": "Part payment received",
+      "description": "Beta pays partial amount for milestones",
+      "parties": ["Alpha Pvt Ltd", "Beta LLP"],
+      "documentRefs": [],
+      "payments": [
+        { "amount": "₹1,00,000", "currency": "INR", "date": "2024-08-06", "payer": "Beta LLP", "payee": "Alpha Pvt Ltd", "reference": "UTR-456" }
+      ],
+      "confidence": 0.85
+    },
+    {
+      "date": "2024-09-12",
+      "title": "Final settlement email",
+      "description": "Email confirms mutual settlement and release",
+      "parties": ["Alpha Pvt Ltd", "Beta LLP"],
+      "documentRefs": ["Email-Settlement-12.eml"],
+      "payments": [
+        { "amount": "₹1,50,000", "currency": "INR", "date": "2024-09-14", "payer": "Beta LLP", "payee": "Alpha Pvt Ltd" }
+      ],
+      "confidence": 0.9
+    }
+  ]
+}
+
