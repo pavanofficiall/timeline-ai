@@ -1,0 +1,139 @@
+Project: timeline-ai — Technical Plan, Current Issues, and Roadmap
+
+Last updated: (keep in sync with commits)
+
+1) Current Status (MVP)
+- Upload → Storage → OCR → Clean → Extract → Persist → Timeline API → Timeline UI.
+- OCR: Gemini Vision primary (gemini-1.5-flash-latest), OCR.Space fallback.
+- Extraction: Gemini-structured via prompt; JSON parsed/validated; stored into tables.
+- DB: Supabase Storage bucket `documents`; tables: documents, case_events, case_parties, case_payments, missing_documents.
+- Next.js API routes: /api/upload, /api/extract, /api/documents/[id]/timeline.
+- UI:
+  - /upload — Browser upload with error surfacing.
+  - /documents — List docs, retry extraction with polling, open timeline.
+  - /timeline/[id] — Timeline view with events, parties, payments, missing docs.
+  - /admin/logs (dev-only) — View OCR/extraction logs and raw text previews.
+
+2) Issues We Have Faced
+- 2.1 Model version mismatch (Gemini 404):
+  - Error: gemini-1.5-flash under v1beta endpoint not allowed → 404.
+  - Fix: Switched to "gemini-1.5-flash-latest" with fallback to "gemini-1.5-flash-001".
+  - Next: Add dynamic model discovery via ListModels and cache compatible IDs.
+
+- 2.2 Schema drift/new vs legacy tables:
+  - Older code wrote to legacy columns; schema SQL defines new minimal columns.
+  - Fix: DB helper mappings updated to match current SQL tables (confidence_score, etc.).
+  - Next: Add explicit migrations, deprecate legacy schema, write one canonical path.
+
+- 2.3 Storage bucket visibility & creation:
+  - Confusion around missing bucket vs missing permissions.
+  - Fix: ensureBucket() added; debug endpoint shows bucket status.
+  - Next: Add a setup checklist page; move bucket creation to a migration.
+
+- 2.4 Environment misconfiguration:
+  - SUPABASE_URL not full URL; service key multi-line; dev server cache.
+  - Fix: safer client init; diagnostics endpoints; friendly banner on /documents.
+  - Next: /admin/diagnostics page; validate env at boot with clear messages.
+
+- 2.5 Extraction JSON not strictly valid:
+  - LLM sometimes returns prose or fenced code.
+  - Fix: Strips fences; safe slice; logs extraction-raw.txt when parse fails.
+  - Next: Add JSON Repair pass; consider Gemini Structured Outputs/Schema.
+
+- 2.6 Timeouts and async work:
+  - Extraction may exceed 60s server limit.
+  - Current: API returns 202; UI polls; upload triggers extraction best-effort.
+  - Next: Background jobs (Supabase Functions/Queues), webhook completion signal.
+
+- 2.7 OCR quality variability:
+  - Scanned docs require fallback; noisy pages reduce accuracy.
+  - Next: Hybrid pipeline: built-in PDF text layer → OCR only when needed; layout-aware chunking.
+
+3) How We Overcome These Issues (Concrete Actions)
+- Robust model selection:
+  - Implement model discovery + memoized compatibility map. Fallback chain + feature flags.
+- Strict JSON enforcement:
+  - Prompt: "Return JSON only" + schema example; add JSON Repair step (fast parser fix); validate via Zod.
+- Background processing:
+  - Move extraction into a queue (Supabase Functions / Edge Functions / Queue service). Upload returns jobId → UI polls job status.
+- Schema management:
+  - SQL migration files with versions; a lightweight migration runner; codify indexes and constraints.
+- OCR pipeline upgrades:
+  - First attempt to extract embedded text (pdfminer/pdf.js/pdftotext). Only OCR images/pages without text.
+  - Use page segmentation hints; adaptive binarization for low-contrast scans.
+- Observability:
+  - Structured logs with requestId/documentId; error taxonomy; per-stage timings.
+  - Metrics: jobs processed, failures, retries, duration percentiles, token usage (if supported by provider).
+- Resilience:
+  - Idempotency keys on upload; dedupe by file checksum; rate limiting; exponential backoff for transient errors.
+- Security & privacy:
+  - Keep keys server-only; signed URLs for file preview; restrict Storage policies; store least PII needed; audit logs.
+
+4) Near-Term Enhancements (High-Value)
+- 4.1 Timeline UI polish:
+  - Filters (date range, event type), group by month/phase; export CSV/PDF.
+  - Inline event edits/annotations; merge/split events.
+- 4.2 Document management:
+  - Drag-and-drop upload; bulk uploads; progress bar; file preview (PDF viewer).
+- 4.3 Extraction improvements:
+  - Use Gemini Structured Outputs with a JSON schema to reduce parse errors.
+  - Post-processing rules: date normalization, amount normalization, party canonicalization.
+- 4.4 Data quality loop:
+  - "Mark incorrect" feedback; active learning dataset; evaluator scripts on synthetic and anonymized corpora.
+- 4.5 Background jobs:
+  - Queue-based extraction; status endpoint; UI polling via SSE/WS.
+
+5) Performance & Cost Efficiency
+- Short path: PDF text layer first, skip OCR when not necessary.
+- Chunking: Page-level or section-level parallelism with batching to reduce token costs.
+- Caching: Cache OCR results keyed by file hash; cache extraction results for identical text.
+- DB optimization: Indexes on (document_id, date) for events; use numeric for amounts; avoid large JSON blobs.
+- Server optimization: Keep heavy work off request path; reuse clients; avoid large client bundles (use Server Components).
+
+6) Testing Strategy
+- Unit: prompt builder, cleaners, JSON repair, amount/date parsing.
+- Integration: upload → storage → OCR (mock) → extract (mock) → DB.
+- E2E: synthetic PDFs/images (10–20 docs); assert timeline content.
+- Regression: capture tricky documents in anonymized fixtures.
+
+7) Security, Compliance, and Privacy
+- Secrets: environment only; no logging of keys.
+- Storage Policies: restrict bucket access; use signed URLs for previews; set expiry.
+- PII: redact where feasible; encryption at rest (Supabase) and TLS in transit.
+- Auditing: user actions log; data access log; document lifecycle timestamps.
+
+8) Roadmap (Phased)
+- Phase 1 (Now → 2 weeks):
+  - Stabilize OCR/extraction, JSON validation (Zod), model fallback, error surfaces.
+  - Add JSON Repair pass and Structured Output option.
+  - Complete background job runner and status API; update UI polling.
+
+- Phase 2 (2 → 6 weeks):
+  - Timeline UX: annotations, filters, export, multi-doc merge.
+  - Document preview; inline triage; enrich parties/payments linking.
+  - Add role-based auth; team spaces.
+
+- Phase 3 (6+ weeks):
+  - Analytics: dashboard of timelines, trends; alerts.
+  - Scaling: batch processing; horizontalization; cost controls.
+  - Optional: vector search for cross-document event linking.
+
+9) Immediate Next Steps (Actionable)
+- Implement JSON Schema / Zod for extraction outputs; reject/repair non-conforming JSON.
+- Add background extraction job (Supabase Edge Functions + queue) and swap /api/extract to enqueue.
+- Add PDF text layer extraction before OCR.
+- Add indexes: case_events(document_id, date), case_parties(document_id), case_payments(document_id), missing_documents(document_id).
+- Add signed URL generation for file preview with short TTL.
+- Add /admin/diagnostics (env + connectivity); show model availability check.
+
+10) Acceptance Criteria for "Timeline Working"
+- Uploading a valid PDF/JPG produces a row in documents with status processed.
+- OCR logs show non-empty ocr-<id>.txt with expected content preview.
+- Extraction succeeds (logs show success) and inserts at least one case_events row for non-empty texts.
+- /timeline/<id> renders at least one event, sorted by date.
+
+Appendix: Prompt & Model Notes
+- Prefer gemini-1.5-flash-latest (fast) for extraction; consider Pro for higher-quality outputs.
+- Prompting strategies: include JSON schema in prompt; use few-shot examples; hard cap output tokens.
+- Consider Gemini Structured Outputs to eliminate parse instability.
+
