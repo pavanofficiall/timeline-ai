@@ -1,0 +1,333 @@
+Project: timeline-ai
+Document: Technical Strategy, Deep-Dive Analysis, and Roadmap (v2)
+Audience: Engineering, Product, Infra, Security
+Status: Living document (update alongside major changes)
+
+====================================
+1) Executive Summary
+====================================
+Goal: Build a reliable, cost-effective pipeline to transform messy legal documents (PDF/images) into structured timelines (events, parties, payments, missing documents), with high observability, fast feedback, and strong privacy.
+
+Key Workstreams (near-term):
+- Stabilize OCR (text-layer first, then OCR) and extraction (structured outputs, JSON repair) to consistently populate case_events.
+- Align data model to product needs; add indexes and validations for fast reads.
+- Move heavy work (OCR/extraction) off request path to background jobs with status tracking.
+- Improve UI for uploads, status, and clear timelines. Add admin diagnostics + logs for debugging.
+- Bake in security/PII handling and compliance-friendly defaults.
+
+Desired Outcomes (next 2–4 weeks):
+- Upload returns document id immediately; background job finishes OCR+extraction ≤2 min p95.
+- ≥90% of clear PDFs produce ≥1 event automatically; parse errors ≤5% with JSON repair.
+- Timeline renders consistently on mobile/desktop with filtering and export.
+
+
+====================================
+2) Current Architecture (as-implemented)
+====================================
+Frontend (Next.js 16 App Router):
+- /upload page: multipart file upload → /api/upload
+- /documents page: list documents; retry extraction; live polling
+- /timeline/[id]: vertical timeline + right sidebar (missing, parties, payments)
+- /admin/logs (dev-only): view server-side logs (/logs directory)
+
+Backend (server modules under backend/):
+- OCR: backend/lib/ocr.ts
+  - Primary: Gemini Vision (gemini-1.5-flash-latest; fallback -001)
+  - Fallback: OCR.Space (when Gemini unavailable/returns empty)
+  - Returns { text, pages, engine }
+- Preprocess: backend/services/fileProcessor.ts
+  - detect file type → extractTextFromFile → cleanText → structured result
+- Extraction: backend/services/aiExtractor.ts
+  - buildExtractionPrompt(text) → Gemini → parse JSON (safe, with fences stripped) → normalize → ExtractionResult
+  - Logs success/failure + writes raw extraction snippet when parse fails
+- DB layer: backend/lib/db.ts
+  - insertCaseEvents/Parties/Payments/MissingDocuments mapped to current schema
+- Supabase: backend/lib/supabase.ts (ensureSupabase())
+- Storage: backend/lib/storage.ts (ensureBucket)
+
+API Routes:
+- POST /api/upload → backend/routes/upload.ts
+  - Storage upload → documents row → OCR+extract (best-effort) → insert case_* rows → mark processed
+- POST /api/extract → backend/routes/extract.ts
+  - Re-run extraction on existing cleaned_text and insert rows
+- GET /api/documents/[id]/timeline → collate case_* rows for UI
+- GET /api/debug/storage, /api/debug/db → diagnostics
+
+Data Model (Supabase):
+- documents(id uuid pk, filename, file_url, uploaded_at, status)
+- case_events(id, document_id fk, date timestamptz, title, description, confidence_score)
+- case_parties(id, document_id fk, name, role)
+- case_payments(id, document_id fk, amount numeric, currency, payer, payee, date)
+- missing_documents(id, document_id fk, description, reason)
+
+Observability:
+- Logs: logs/extraction.log (JSON lines), logs/extraction-raw.txt, logs/ocr-<id>.txt
+- Debug endpoints: storage/db
+
+
+====================================
+3) Problems Observed & Root-Cause Analysis
+====================================
+P1: Model ID 404 (Gemini) → extraction fails
+- Cause: Using model alias unsupported in SDK/endpoint region/version.
+- Impact: No structured events → empty timeline.
+- Fix: Adopt “gemini-1.5-flash-latest” with fallback to “gemini-1.5-flash-001” and prepare model discovery.
+
+P2: Schema drift (legacy vs new schema)
+- Cause: Earlier code wrote legacy columns; new schema expects simpler shape.
+- Impact: Inserts fail or silently mismatch; API returns 500 or data not consumable.
+- Fix: Map inserts to new schema; supply numeric amounts; confidence_score mapping.
+
+P3: OCR variability
+- Cause: Scanned PDFs, low contrast, multipage blends; relying on 1 engine only.
+- Impact: Empty/garbled text; poor extraction.
+- Fix: Hybrid approach: extract text layer first; OCR only where text is absent; adopt fallback; page-level retries.
+
+P4: Long-running extraction (server timeouts)
+- Cause: Blocking request; large docs; model latency.
+- Impact: 500/202; user confusion; missing timeline.
+- Fix: Background jobs with status; UI polling; extraction webhooks.
+
+P5: JSON not strictly valid
+- Cause: LLM returns prose, extra tokens, markdown fences.
+- Impact: Parser fails; loses structured data.
+- Fix: Strict prompt; output schema; fenced stripping; JSON repair; schema validation; retry with shorter prompt.
+
+P6: Environment misconfig
+- Cause: SUPABASE_URL not full URL; keys wrong; caching.
+- Impact: Client init errors; storage/DB failures.
+- Fix: Safer init; dev diagnostics; friendly banners; docs.
+
+
+====================================
+4) Detailed Mitigation Plan
+====================================
+4.1 OCR Pipeline (Text-first, OCR-second)
+- Step A: Attempt PDF text extraction using pdftotext/pdf.js on server where possible.
+  - If text density ≥ threshold (e.g., >300 chars per page), skip OCR for that page.
+- Step B: For pages with low/no text, run OCR (Gemini Vision first → OCR.Space fallback).
+- Step C: De-skew/binarize images before OCR for low-quality scans (integrate lightweight preproc).
+- Step D: Page-level processing + concatenation with form-feed separators (\f) to preserve boundaries.
+- Step E: Cache OCR results by (sha256(file) + pageIndex) in Storage/DB to avoid rework.
+
+4.2 Extraction Stability
+- Structured Outputs (preferred):
+  - Switch to Gemini Structured Outputs or use a strict JSON schema (zod) in prompt.
+  - If SO not available, add a JSON Repair step (fast, deterministic):
+    - Strip fences → remove trailing commas → quote keys → ensure arrays/objects closed.
+    - Validate with zod; if fail, attempt a minimal repair; log failures.
+- Prompt Hardening:
+  - Include an explicit minimal JSON example matching schema.
+  - Set expectation: “No prose. Return JSON only.”
+  - Provide concise instructions; cap max tokens.
+- Retry Strategy:
+  - First pass with full text; if fail, second pass: chunked sections (per 5–10 pages) and merge results.
+
+4.3 Background Processing & Status
+- Queue design:
+  - /api/upload enqueues job with (document_id, file_url).
+  - Worker performs OCR+extraction and writes to DB.
+  - Status table or job table: pending → processing → done/failed; timestamps + error fields.
+- UI:
+  - /documents shows status badge; “Retry extraction” enqueues a new job (idempotent lock per doc).
+  - Timeline page polls job status; show last update/ETA.
+
+4.4 Data Model & Performance
+- Indexes:
+  - case_events (document_id, date)
+  - case_parties (document_id)
+  - case_payments (document_id, date)
+  - missing_documents (document_id)
+- Validations:
+  - NOT NULL on titles; check constraints for date ranges in future iterations.
+- Normalization:
+  - Keep amounts numeric; store currency separately; store confidence as numeric with 0–1 range.
+
+4.5 Observability & Debugging
+- Structured logs
+  - requestId/documentId in each stage
+  - Stage timings: upload, OCR, extraction, DB inserts
+  - Error taxonomy (validation/model/storage/db)
+- Diagnostics UI
+  - /admin/diagnostics (env/Z) + /admin/logs (exists)
+  - Timeline health indicators (last extraction, last OCR engine used)
+
+4.6 Security & Privacy
+- Secrets: server-only; no rendering on client; guard debug endpoints in prod.
+- Storage Policies: private bucket; signed URLs for preview; short TTLs; revoke if needed.
+- PII Handling: redact where possible; secure logs; rotate keys; restrict access roles.
+
+
+====================================
+5) Cost & Performance Analysis
+====================================
+OCR Costs:
+- Gemini Vision: low per-call cost, but large images/pages increase tokens.
+- OCR.Space: predictable pricing; good fallback for scans.
+Mitigation:
+- Prefer text-layer extraction (near-zero cost) when available.
+- Page-level selection reduces OCR calls.
+
+Extraction Costs:
+- LLM token usage depends on input length.
+Mitigation:
+- Summarize/normalize before extraction; section-based extraction; reuse results (cache by text hash).
+
+DB/Storage Costs:
+- Use object storage for files; avoid storing raw OCR long text in DB if not needed, or compress.
+- Index only necessary columns; archive old rows.
+
+Latency Targets:
+- Upload API p95 < 3s (after moving to enqueue); background OCR+extract p95 ≤ 120s; timeline query p95 < 200ms for 100 events.
+
+
+====================================
+6) Testing Strategy (Detailed)
+====================================
+Unit:
+- cleanText; detectFileType; bufferToBase64; amount normalization; date parsing.
+- Prompt builder: golden tests ensure schema keys and wording.
+
+Integration:
+- Mock storage + DB; simulate file upload → verify inserts and states.
+- OCR mocks: return fixed text for PDF/images; extraction mocks return stable JSON.
+
+E2E:
+- Use synthetic PDFs (10 docs) with known expected events; assert timeline contents.
+- Include corner cases: multi-language, multi-date ranges, tables, poor scans.
+
+Regression:
+- Capture anonymized examples for tricky documents; add them to the test corpus.
+
+
+====================================
+7) Background Jobs Design (Option Set)
+====================================
+Option A: Supabase Functions + Queues (recommended if available)
+- Enqueue job with document_id; function processes OCR+extract; writes back status.
+- Pros: integrated, manageable; Cons: need tier/support for queues.
+
+Option B: Dedicated Worker (Node service)
+- Small node process subscribed to a message queue (e.g., Redis, SQS); horizontally scalable.
+- Pros: full control; Cons: infra overhead.
+
+Option C: Vercel Cron + On-demand ISR (limited)
+- Periodic scans + webhooks—not ideal for per-upload real-time needs.
+
+MVP Path:
+- Implement a jobs table with a server “worker” route (admin-only) that drains jobs. Incremental until a proper queue is added.
+
+
+====================================
+8) Roadmap & Milestones
+====================================
+M1 (Week 1–2): Stabilization
+- Structured Outputs/JSON Repair + zod validation.
+- PDF text-layer extraction; only OCR where necessary.
+- Add indexes; align schema + migrations; acceptance tests on synthetic docs.
+- Background job: table + worker route; upload enqueues job.
+
+M2 (Week 3–4): UX + Observability
+- Timeline filters; export (CSV/PDF); annotate events.
+- Status indicators; job progress; logs viewer improvements; /admin/diagnostics.
+- Signed URL previews; file viewer for PDFs.
+
+M3 (Week 5–6): Scale & Quality
+- Chunked extraction; parallelization; caching by text hash.
+- Data quality feedback loop; model evaluation on held-out set.
+- Multi-tenant auth; audit logs; role-based policies.
+
+KPIs:
+- Extraction success (≥1 event) ≥ 90% on clear PDFs.
+- JSON parse failures ≤ 5% with repair.
+- Upload-to-timeline latency p95 ≤ 120s.
+
+
+====================================
+9) Open Questions & Decisions Needed
+====================================
+- Target providers: Continue with Gemini only, or add OpenAI/Claude as fallback?
+- Compliance constraints for data residency/PII—any requirements?
+- SLOs for latency/availability to inform infra choices?
+- Versioning strategy for prompts and schemas in DB?
+
+
+====================================
+10) Developer Experience & Tooling
+====================================
+- One-command local run; seed/dev data tasks.
+- Pre-commit checks: typecheck, lint, unit tests.
+- Scripts for: generate SQL migrations, reindex, repair JSON.
+- Observability: pretty logs in dev; JSON logs in prod.
+
+
+====================================
+11) Security & Privacy (Expanded)
+====================================
+- Secret hygiene: use .env.local locally; CI/CD secrets in provider vaults.
+- Storage security: private bucket; signed URLs (short TTL) for preview; policy to avoid public leaks.
+- Least privilege: use service role key server-side only; anon key for client (if needed) but no write perms.
+- Data retention: define retention for OCR raw text and extraction logs; allow purge on request.
+
+
+====================================
+12) Maintenance Playbooks
+====================================
+- If extraction fails repeatedly:
+  1) Check /admin/logs for extraction-raw.txt
+  2) Run /api/extract with documentId; observe logs
+  3) If JSON failures persist, enable JSON Repair; reduce input size; chunk
+
+- If OCR empty:
+  1) Inspect ocr-<id>.txt preview
+  2) Confirm OCR API keys and quotas; try fallback; try de-skew
+  3) Attempt text-layer extraction first
+
+- If DB errors:
+  1) Verify schema with supabase_schema.sql; confirm indexes
+  2) Use /api/debug/db to probe access
+
+- If Storage errors:
+  1) Verify bucket via /api/debug/storage
+  2) Check service role permissions
+
+
+====================================
+13) Future Features (Beyond MVP)
+====================================
+- Cross-document correlation: link related events; detect duplicates.
+- Entity resolution: canonicalize parties across docs.
+- Timelines merge: multiple documents into a consolidated case timeline.
+- Legal citations: detect references to statutes/case law.
+- Smart alerts: detect breaches/milestones; deadline reminders.
+
+
+====================================
+14) Appendix A — Suggested SQL Indexes
+====================================
+-- Events performance
+CREATE INDEX IF NOT EXISTS idx_case_events_doc_date ON public.case_events(document_id, date);
+-- Parties, Payments, Missing docs
+CREATE INDEX IF NOT EXISTS idx_case_parties_doc ON public.case_parties(document_id);
+CREATE INDEX IF NOT EXISTS idx_case_payments_doc_date ON public.case_payments(document_id, date);
+CREATE INDEX IF NOT EXISTS idx_missing_documents_doc ON public.missing_documents(document_id);
+
+
+====================================
+15) Appendix B — API Contracts (MVP)
+====================================
+POST /api/upload (multipart/form-data)
+- file: binary
+- → 200 { success, document: { id, filename, file_url, status } }
+
+POST /api/extract (application/json)
+- { documentId: string }
+- → 200 { success, result } or 202 { status: "processing" }
+
+GET /api/documents/[id]/timeline
+- → 200 { document, timeline: Event[], parties: Party[], payments: Payment[], missing: Missing[] }
+
+
+====================================
+End of document.
+
