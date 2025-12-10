@@ -70,8 +70,15 @@ export async function extractStructuredData(cleanedText: string): Promise<Extrac
 
     const prompt = buildExtractionPrompt(cleanedText);
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const resp = await model.generateContent([{ text: prompt }]);
+    let usedModel = "gemini-1.5-flash-latest";
+    let resp;
+    try {
+      resp = await genAI.getGenerativeModel({ model: usedModel }).generateContent([{ text: prompt }]);
+    } catch (e: any) {
+      // Fallback to older model identifier
+      usedModel = "gemini-1.5-flash-001";
+      resp = await genAI.getGenerativeModel({ model: usedModel }).generateContent([{ text: prompt }]);
+    }
 
     const text = stripCodeFences(resp?.response?.text?.() || "");
     const parsed = safeJSONParse(text);
@@ -81,16 +88,23 @@ export async function extractStructuredData(cleanedText: string): Promise<Extrac
       logExtraction({
         timestamp: new Date().toISOString(),
         status: "failure",
-        model: "gemini-1.5-flash",
+        model: usedModel,
         validationErrors: ["JSON parse failed"],
       });
+      try {
+        const fs = await import("fs");
+        const path = await import("path");
+        const dir = path.join(process.cwd(), "logs");
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, `extraction-raw.txt`), snippet, { encoding: "utf8" });
+      } catch {}
       return baseResult();
     }
     const normalized = normalizeResult(parsed);
     logExtraction({
       timestamp: new Date().toISOString(),
       status: "success",
-      model: "gemini-1.5-flash",
+      model: usedModel,
     });
     return normalized;
   } catch (err) {
@@ -98,7 +112,7 @@ export async function extractStructuredData(cleanedText: string): Promise<Extrac
     logExtraction({
       timestamp: new Date().toISOString(),
       status: "failure",
-      model: "gemini-1.5-flash",
+      model: "gemini-1.5-flash-latest",
       error: String((err as Error)?.message || err),
     });
     return baseResult();

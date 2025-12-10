@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const LOG_DIR = path.join(process.cwd(), "timeline-ai", "logs");
+const LOG_DIR = path.join(process.cwd(), "logs");
 const LOG_FILE = path.join(LOG_DIR, "extraction.log");
 
 function ensureLogDir() {
@@ -29,4 +29,3 @@ export function logExtraction(entry: ExtractionLog) {
     // best effort only
   }
 }
-

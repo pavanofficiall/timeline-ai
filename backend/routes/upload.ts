@@ -89,6 +89,27 @@ export async function uploadDocumentRoute(req: any, res: any) {
       log("OCR/processing failed (non-blocking)", ocrErr);
       processed = { cleanedText: "", engine: "none", pages: [], rawText: "" };
     }
+    try {
+      const { logExtraction } = await import("../utils/extractionLogger");
+      logExtraction({
+        timestamp: new Date().toISOString(),
+        status: "success",
+        model: "ocr",
+        documentId,
+        // Include a small preview of extracted text only (first 500 chars)
+        error: undefined,
+        validationErrors: undefined,
+      } as any);
+      // Write raw OCR text to a sidecar file for debugging (first 2000 chars)
+      const fs = await import("fs");
+      const path = await import("path");
+      const dir = path.join(process.cwd(), "logs");
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const ocrPreview = String(processed?.rawText || "").slice(0, 2000);
+      fs.writeFileSync(path.join(dir, `ocr-${documentId || "pending"}.txt`), ocrPreview, { encoding: "utf8" });
+    } catch (_) {
+      // best effort
+    }
 
     // 4. OPTIONAL: trigger extraction pipeline and persist results
     try {
