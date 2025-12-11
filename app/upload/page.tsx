@@ -7,7 +7,20 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { FileUp, CheckCircle2, UploadCloud, File as FileIcon, Info, Paperclip } from "lucide-react";
+import {
+  FileUp,
+  CheckCircle2,
+  UploadCloud,
+  File as FileIcon,
+  FileText,
+  FileSpreadsheet,
+  FileArchive,
+  FileAudio2,
+  FileVideo2,
+  Image as ImageIcon,
+  Info,
+  Paperclip,
+} from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 
 export default function UploadPage() {
@@ -17,6 +30,27 @@ export default function UploadPage() {
   const [percent, setPercent] = useState<number>(0);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  function getFileMeta(f: File | null) {
+    const def = { label: "File", Icon: FileIcon, classes: "bg-muted text-muted-foreground" };
+    if (!f) return def;
+    const name = f.name.toLowerCase();
+    const ext = name.includes(".") ? name.split(".").pop() || "" : "";
+    const byExt = (e: string) => ext === e;
+    const isImage = (/
+      jpg|jpeg|png|gif|webp|bmp|tiff
+    /i).test(ext);
+    if (byExt("pdf")) return { label: "PDF", Icon: FileText, classes: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-200" };
+    if (byExt("doc") || byExt("docx")) return { label: "DOC", Icon: FileText, classes: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200" };
+    if (byExt("xls") || byExt("xlsx") || byExt("csv")) return { label: "Sheet", Icon: FileSpreadsheet, classes: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-200" };
+    if (byExt("ppt") || byExt("pptx")) return { label: "Slides", Icon: FileText, classes: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-200" };
+    if (byExt("zip") || byExt("rar") || byExt("7z")) return { label: "Archive", Icon: FileArchive, classes: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200" };
+    if (byExt("mp3") || byExt("wav")) return { label: "Audio", Icon: FileAudio2, classes: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-200" };
+    if (byExt("mp4") || byExt("mov") || byExt("mkv")) return { label: "Video", Icon: FileVideo2, classes: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200" };
+    if (isImage) return { label: "Image", Icon: ImageIcon, classes: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-200" };
+    if (byExt("txt") || byExt("md")) return { label: "Text", Icon: FileText, classes: "bg-slate-100 text-slate-700 dark:bg-slate-800/50 dark:text-slate-200" };
+    return def;
+  }
 
   const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -115,20 +149,25 @@ export default function UploadPage() {
                 </div>
 
                 {/* Selected file summary */}
-                {file && (
-                  <div className="flex items-center gap-3 rounded-md border p-3 text-sm">
-                    <FileIcon className="h-4 w-4 text-muted-foreground" />
-                    <div className="flex-1 overflow-hidden">
-                      <div className="truncate font-medium">{file.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB • {file.type || "unknown"}
+                {file && (() => {
+                  const meta = getFileMeta(file);
+                  return (
+                    <div className="flex items-center gap-3 rounded-md border p-3 text-sm">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-md ${meta.classes}`}>
+                        <meta.Icon className="h-5 w-5" />
                       </div>
+                      <div className="flex-1 overflow-hidden">
+                        <div className="truncate font-medium">{file.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB • {meta.label}
+                        </div>
+                      </div>
+                      <Button size="sm" variant="secondary" onClick={() => setFile(null)} disabled={loading}>
+                        Clear
+                      </Button>
                     </div>
-                    <Button size="sm" variant="secondary" onClick={() => setFile(null)} disabled={loading}>
-                      Clear
-                    </Button>
-                  </div>
-                )}
+                  );
+                })()}
 
                 <form onSubmit={onSubmit} className="space-y-4">
                   <div className="flex items-center justify-between gap-3">
