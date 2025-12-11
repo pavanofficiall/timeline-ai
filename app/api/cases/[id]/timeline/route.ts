@@ -5,9 +5,11 @@ export const runtime = "nodejs";
 
 // GET /api/cases/:id/timeline
 // Returns merged, chronologically-sorted, deduplicated timeline for the case
-export async function GET(_req: NextRequest, ctx: { params?: { id?: string } }) {
+export async function GET(req: NextRequest, ctx: { params?: { id?: string } }) {
   try {
-    const id = ctx?.params?.id;
+    const segments = req.nextUrl?.pathname.split("/").filter(Boolean) || [];
+    const fallbackId = segments[segments.indexOf("cases") + 1];
+    const id = ctx?.params?.id || fallbackId;
     if (!id) return NextResponse.json({ error: "Missing case id" }, { status: 400 });
     const supa: any = ensureSupabase();
     if (!supa) return NextResponse.json({ error: "Supabase not configured" }, { status: 500 });

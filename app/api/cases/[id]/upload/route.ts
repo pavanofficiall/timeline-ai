@@ -3,13 +3,16 @@ import { ensureSupabase } from "@/backend/lib/supabase";
 import { ensureBucket } from "@/backend/lib/storage";
 import { processDocument } from "@/backend/services/fileProcessor";
 import { extractStructuredData } from "@/backend/services/aiExtractor";
+import { log as serverLog } from "@/backend/utils/logger";
 
 export const runtime = "nodejs";
 
 // POST /api/cases/:id/upload (multipart form-data with file)
 export async function POST(req: NextRequest, ctx: { params?: { id?: string } }) {
   try {
-    const caseId = ctx?.params?.id;
+    const segments = req.nextUrl?.pathname.split("/").filter(Boolean) || [];
+    const fallbackId = segments[segments.indexOf("cases") + 1];
+    const caseId = ctx?.params?.id || fallbackId;
     if (!caseId) return NextResponse.json({ error: "Missing case id" }, { status: 400 });
     const supa: any = ensureSupabase();
     if (!supa) return NextResponse.json({ error: "Supabase not configured" }, { status: 500 });
@@ -44,9 +47,44 @@ export async function POST(req: NextRequest, ctx: { params?: { id?: string } }) 
 
     // OCR + clean
     const processed = await processDocument(buffer, file.name);
+    // Write a short OCR preview log (first 2000 chars) for debugging
+    try {
+      const fs = await import("fs");
+      const pathMod = await import("path");
+      const dir = pathMod.join(process.cwd(), "logs");
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const ocrPreview = String(processed?.rawText || "").slice(0, 2000);
+      fs.writeFileSync(pathMod.join(dir, `ocr-${docRow.id}.txt`), ocrPreview, { encoding: "utf8" });
+    } catch {
+      // non-blocking
+    }
 
     // Extract events
-    const result = await extractStructuredData(processed.cleanedText || "");
+    let result = await extractStructuredData(processed.cleanedText || "");
+
+    // Belt-and-suspenders: if no events but we do have payments/missing, synthesize simple events here as well
+    if ((!result.events || result.events.length === 0) && (result.payments?.length || result.missingDocuments?.length)) {
+      const synth: any[] = [];
+      for (const pm of result.payments || []) {
+        synth.push({
+          date: (pm as any).date || null,
+          title: `Payment ${pm.amount ?? ''} ${pm.currency ?? ''}`.trim() || 'Payment',
+          description: [pm.payer ? `From: ${pm.payer}` : '', pm.payee ? `To: ${pm.payee}` : ''].filter(Boolean).join(' | ') || null,
+          confidence: 0.5,
+        });
+      }
+      for (const m of result.missingDocuments || []) {
+        synth.push({
+          date: (m as any).date || null,
+          title: `Missing: ${m.description || (m as any).type || 'Document'}`,
+          description: (m as any).reason || null,
+          confidence: 0.4,
+        });
+      }
+      if (synth.length) {
+        result = { ...result, events: synth } as any;
+      }
+    }
 
     // Persist into case timeline (events table with case_id + doc linkage)
     const eventRows = (result.events || [])
@@ -66,20 +104,25 @@ export async function POST(req: NextRequest, ctx: { params?: { id?: string } }) 
       const k = `${r.case_id}|${r.date || ''}|${(r.description || '').toLowerCase()}`;
       if (!unique.has(k)) unique.set(k, r);
     }
-    const { data: inserted, error: evErr } = await supa.from("case_events").insert([...unique.values()]).select();
+    const toInsert = [...unique.values()];
+    const { data: inserted, error: evErr } = await supa.from("case_events").insert(toInsert).select();
     if (evErr) return NextResponse.json({ error: evErr.message }, { status: 500 });
 
     // Mark document processed
     await supa.from("documents").update({ status: "processed" }).eq("id", docRow.id);
 
+    const added = inserted?.length || 0;
+    const ignored = (eventRows.length || 0) - added;
+    // Light server-side log
+    try { serverLog("case-upload summary", { caseId, docId: docRow.id, added, ignored }); } catch {}
+
     return NextResponse.json({
       success: true,
       document: docRow,
-      added: inserted?.length || 0,
-      duplicatesIgnored: eventRows.length - (inserted?.length || 0),
+      added,
+      duplicatesIgnored: ignored,
     });
   } catch (e: any) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
   }
 }
-
