@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ export default function UploadPage() {
   const [result, setResult] = useState<any>(null);
   const [percent, setPercent] = useState<number>(0);
   const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -93,20 +94,24 @@ export default function UploadPage() {
                     <span className="mx-1 font-medium text-foreground">browse</span>
                     to upload
                   </div>
-                  {/* Visually-hidden input to avoid native 'no file chosen' text */}
+                  {/* Hidden input + programmatic click */}
                   <input
+                    ref={fileInputRef}
                     id="file"
                     type="file"
                     accept=".pdf,.png,.jpg,.jpeg"
                     onChange={(e) => setFile(e.target.files?.[0] || null)}
                     className="sr-only"
                   />
-                  <label htmlFor="file">
-                    <Button type="button" variant="secondary" className="gap-2">
-                      <Paperclip className="h-4 w-4" />
-                      Attach
-                    </Button>
-                  </label>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="gap-2"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Paperclip className="h-4 w-4" />
+                    Attach
+                  </Button>
                 </div>
 
                 {/* Selected file summary */}
