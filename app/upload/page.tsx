@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { FileUp, CheckCircle2, UploadCloud, File as FileIcon, Info } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -123,7 +124,7 @@ export default function UploadPage() {
                       Max size ~10MB. For larger scanned PDFs, OCR fallback may take longer.
                     </div>
                     <Button type="submit" disabled={!file || loading} className="gap-2">
-                      <FileUp className="h-4 w-4" />
+                      {loading ? <Spinner className="h-4 w-4" /> : <FileUp className="h-4 w-4" />}
                       {loading ? "Uploading…" : "Upload"}
                     </Button>
                   </div>

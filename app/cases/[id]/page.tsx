@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 
 type Doc = { id: string; filename: string; uploaded_at?: string; status?: string }
 type Event = { id?: string; date?: string; title?: string; description?: string; confidence_score?: number }
@@ -64,17 +67,25 @@ export default function CaseWorkspacePage() {
       </div>
 
       {/* Upload */}
-      <div className="rounded-lg border p-4">
+      <Card className="border">
+        <div className="p-4">
         <label className="text-sm font-medium mb-2 block">Upload a document (PDF/PNG/JPG)</label>
-        <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={onUpload} disabled={uploading} />
-      </div>
+        <div className="flex items-center gap-3">
+          <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={onUpload} disabled={uploading} />
+          <Button disabled className="gap-2" variant="secondary">
+            {uploading ? <Spinner className="h-4 w-4" /> : null}
+            {uploading ? "Uploading…" : "Upload"}
+          </Button>
+        </div>
+        </div>
+      </Card>
 
       {/* Documents */}
-      <div className="rounded-lg border">
+      <Card className="border">
         <div className="border-b p-3 font-medium">Documents</div>
         <div className="p-3 space-y-2">
           {loading ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
+            <div className="text-sm text-muted-foreground flex items-center gap-2"><Spinner /> Loading…</div>
           ) : docs.length ? (
             docs.map((d) => (
               <div key={d.id} className="flex items-center justify-between text-sm">
@@ -90,14 +101,14 @@ export default function CaseWorkspacePage() {
             <div className="text-sm text-muted-foreground">No documents yet.</div>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Timeline */}
-      <div className="rounded-lg border">
+      <Card className="border">
         <div className="border-b p-3 font-medium">Master Timeline</div>
         <div className="p-4">
           {loading ? (
-            <div className="text-sm text-muted-foreground">Loading timeline…</div>
+            <div className="text-sm text-muted-foreground flex items-center gap-2"><Spinner /> Loading timeline…</div>
           ) : timeline.length ? (
             <div className="relative pl-6">
               <div className="absolute left-2 top-0 bottom-0 w-px bg-border" />
@@ -127,4 +138,3 @@ export default function CaseWorkspacePage() {
     </div>
   )
 }
-
