@@ -92,11 +92,9 @@ export default async function DocumentsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  {d.fileUrl && (
-                    <a href={d.fileUrl} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline">
-                      View File
-                    </a>
-                  )}
+                  <Link href={`/api/documents/${d.id}/file`} className="text-sm text-blue-600 hover:underline">
+                    View File
+                  </Link>
                   <Link href={`/timeline/${d.id}`} className="text-sm bg-primary text-primary-foreground px-3 py-1.5 rounded">
                     Open Timeline
                   </Link>

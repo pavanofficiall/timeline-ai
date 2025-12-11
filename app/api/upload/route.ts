@@ -46,12 +46,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Upload failed: empty response" }, { status: 500 });
     }
 
+    // The bucket is private; generate a short-lived signed URL
     const supa = ensureSupabase();
     let fileUrl: string | null = null;
     if (supa) {
-      const path = stored.file_path || stored.fileUrl || stored.path || "";
-      const { data: pub } = (supa as any).storage.from("documents").getPublicUrl(path);
-      fileUrl = pub?.publicUrl || null;
+      const pth = stored.file_url || stored.file_path || stored.path || "";
+      try {
+        const { data, error } = await (supa as any).storage.from("documents").createSignedUrl(pth, 60 * 10); // 10 minutes
+        if (!error) fileUrl = data?.signedUrl || null;
+      } catch {}
     }
     const documentId = stored.document_id || stored.id || null;
 
