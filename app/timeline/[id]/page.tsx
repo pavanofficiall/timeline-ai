@@ -28,6 +28,7 @@ export default function TimelinePage() {
     payments: Payment[];
     missing: Missing[];
   }>({ timeline: [], parties: [], payments: [], missing: [] });
+  const [counts, setCounts] = useState({ ev: 0, pa: 0, pay: 0, miss: 0 });
 
   useEffect(() => {
     let active = true;
@@ -36,7 +37,19 @@ export default function TimelinePage() {
         const res = await fetch(`/api/documents/${docId}/timeline`);
         if (!res.ok) throw new Error("Failed to fetch timeline");
         const json = await res.json();
-        if (active) setData(json);
+        if (active) {
+          setData(json);
+          const ev = Array.isArray(json?.timeline) ? json.timeline.length : 0;
+          const pa = Array.isArray(json?.parties) ? json.parties.length : 0;
+          const pay = Array.isArray(json?.payments) ? json.payments.length : 0;
+          const miss = Array.isArray(json?.missing) ? json.missing.length : 0;
+          setCounts({ ev, pa, pay, miss });
+          if (process.env.NODE_ENV === "development") {
+            // Lightweight client-side debug to help verify data presence
+            // eslint-disable-next-line no-console
+            console.log("[timeline] id=", docId, "counts:", { ev, pa, pay, miss });
+          }
+        }
       } catch (e: any) {
         if (active) setError(e?.message || "Failed to load");
       } finally {
@@ -98,6 +111,11 @@ export default function TimelinePage() {
             {notice && <span className="text-sm text-amber-600">{notice}</span>}
             {loading && <span className="text-sm text-muted-foreground">Loading…</span>}
             {error && <span className="text-sm text-red-500">{error}</span>}
+            {process.env.NODE_ENV === "development" && (
+              <span className="text-xs rounded px-2 py-1 bg-muted text-muted-foreground">
+                id:{docId?.slice(0, 8)} ev:{counts.ev} pa:{counts.pa} pay:{counts.pay} miss:{counts.miss}
+              </span>
+            )}
             <button
               onClick={handleRetry}
               disabled={retrying}
@@ -151,18 +169,27 @@ export default function TimelinePage() {
           {/* Right Sidebar */}
           <div className="md:col-span-1 space-y-6">
             {/* Missing Documents */}
-            <div className="rounded-lg border p-4 bg-red-50 border-red-200">
-              <h2 className="text-sm font-semibold text-red-700 mb-3">Missing Documents</h2>
+            <div className="rounded-lg border p-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-400/30">
+              <h2 className="text-sm font-semibold text-red-700 dark:text-red-300 mb-3">Missing Documents</h2>
               <div className="space-y-3">
                 {data.missing?.length ? (
                   data.missing.map((m, idx) => (
-                    <div key={m.id || idx} className="rounded-md bg-white border border-red-200 p-3 shadow-sm">
-                      <div className="text-sm font-medium text-red-700">{m.description || "Missing item"}</div>
-                      {m.reason && <p className="text-xs text-red-600 mt-1">Reason: {m.reason}</p>}
+                    <div
+                      key={m.id || idx}
+                      className="rounded-md bg-white dark:bg-background border border-red-200 dark:border-red-400/30 p-3 shadow-sm"
+                    >
+                      <div className="text-sm font-medium text-red-700 dark:text-red-300">
+                        {m.description || "Missing item"}
+                      </div>
+                      {m.reason ? (
+                        <p className="text-xs text-red-600 dark:text-red-200 mt-1">Reason: {m.reason}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground mt-1">Reason: —</p>
+                      )}
                     </div>
                   ))
                 ) : (
-                  <div className="text-xs text-red-600">No missing documents identified.</div>
+                  <div className="text-xs text-red-600 dark:text-red-300">No missing documents identified.</div>
                 )}
               </div>
             </div>

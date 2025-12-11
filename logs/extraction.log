@@ -4,3 +4,6 @@
 {"timestamp":"2025-12-11T06:46:37.366Z","status":"success","model":"gemini-2.5-flash"}
 {"timestamp":"2025-12-11T09:49:30.890Z","status":"success","model":"ocr","documentId":"6b7f260c-9ba5-4fc1-88bb-58eb8bb01c3f"}
 {"timestamp":"2025-12-11T09:49:40.181Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-11T16:06:20.052Z","status":"success","model":"ocr","documentId":"a61ceb06-583e-4581-a2b4-6c66e4c71cd0"}
+{"timestamp":"2025-12-11T16:06:27.677Z","status":"success","model":"ocr","documentId":"6e9c8a21-2488-45be-a793-f62f593ee903"}
+{"timestamp":"2025-12-11T16:06:49.715Z","status":"failure","model":"gemini-1.5-flash-latest","error":"[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent: [404 Not Found] models/gemini-1.5-flash-001 is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."}

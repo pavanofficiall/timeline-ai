@@ -3,9 +3,20 @@ import { ensureSupabase } from "@/backend/lib/supabase";
 
 export const runtime = "nodejs";
 
-export async function GET(_req: NextRequest, ctx: { params: { id: string } }) {
+export async function GET(_req: NextRequest, ctx: { params?: { id?: string } }) {
   try {
-    const documentId = ctx?.params?.id;
+    // Be tolerant: accept id from path params, query string, or parse from pathname
+    let documentId = ctx?.params?.id;
+    if (!documentId) {
+      try {
+        const url = new URL(_req.url);
+        documentId = url.searchParams.get("id") || undefined;
+        if (!documentId) {
+          const m = url.pathname.match(/\/api\/documents\/([^/]+)\/timeline/);
+          if (m && m[1]) documentId = m[1];
+        }
+      } catch {}
+    }
     if (!documentId) {
       return NextResponse.json({ error: "Missing document id" }, { status: 400 });
     }
