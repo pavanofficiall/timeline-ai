@@ -193,6 +193,39 @@ export async function extractStructuredData(cleanedText: string): Promise<Extrac
         missingDocuments: heuristic.missingDocuments?.length ? heuristic.missingDocuments : normalized.missingDocuments,
       };
     }
+
+    // If still no events, synthesize simple timeline events from payments/missing docs
+    if (!normalized.events || normalized.events.length === 0) {
+      const synthesized: ExtractedEvent[] = [] as any;
+      const pays = normalized.payments || [];
+      for (const pm of pays) {
+        const title = `Payment ${pm.amount ? pm.amount : ''} ${pm.currency ? pm.currency : ''}`.trim();
+        const descParts = [
+          pm.payer ? `From: ${pm.payer}` : '',
+          pm.payee ? `To: ${pm.payee}` : '',
+          pm.reference ? `Ref: ${pm.reference}` : '',
+          pm.description ? pm.description : '',
+        ].filter(Boolean);
+        synthesized.push({
+          date: pm.date || undefined,
+          title: title || 'Payment',
+          description: descParts.join(' | ') || undefined,
+          confidence: 0.6,
+        } as any);
+      }
+      const miss = normalized.missingDocuments || [];
+      for (const m of miss) {
+        synthesized.push({
+          date: (m as any).date || undefined,
+          title: `Missing: ${m.description || (m as any).type || 'Document'}`,
+          description: m.reason || undefined,
+          confidence: 0.5,
+        } as any);
+      }
+      if (synthesized.length) {
+        normalized.events = synthesized;
+      }
+    }
     logExtraction({
       timestamp: new Date().toISOString(),
       status: "success",
