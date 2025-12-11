@@ -11,3 +11,5 @@
 {"timestamp":"2025-12-11T16:16:10.953Z","status":"failure","model":"gemini-1.5-flash-latest","error":"[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent: [404 Not Found] models/gemini-1.5-flash-001 is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."}
 {"timestamp":"2025-12-11T16:34:24.454Z","status":"success","model":"ocr","documentId":"9955b39e-5ef5-4083-b515-be2fa1ffe6fe"}
 {"timestamp":"2025-12-11T16:34:45.067Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-11T18:19:06.187Z","status":"success","model":"ocr","documentId":"be8f0543-f9a5-4f5b-a9e9-8b9b61257fb4"}
+{"timestamp":"2025-12-11T18:19:20.134Z","status":"success","model":"gemini-2.5-flash"}
