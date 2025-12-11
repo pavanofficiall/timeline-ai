@@ -1,0 +1,17 @@
+Missing Documents
+Document Name Reason Missing Requested On
+ID Proof Not submitted 2025-01-05
+Address Proof Unreadable copy 2025-01-06
+Income Certificate User did not upload 2025-01-07
+
+Identified Parties
+Party Name Role Contact
+John Doe Primary Applicant +91 90000 11111
+Jane Smith Co Applicant +91 90000 22222
+Mark Wilson Guarantor +91 90000 33333
+
+Payments
+Payment ID Amount Status Date
+P001 ■10,000 Paid 2025-01-03
+P002 ■5,500 Pending 2025-01-04
+P003 ■2,750 Failed 2025-01-05

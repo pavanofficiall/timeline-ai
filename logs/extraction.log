@@ -1,2 +1,6 @@
 {"timestamp":"2025-12-10T18:31:02.313Z","status":"success","model":"ocr","documentId":"e6abb321-12b7-4f4f-98ef-e99f7919ad1b"}
 {"timestamp":"2025-12-10T18:31:02.481Z","status":"failure","model":"gemini-1.5-flash-latest","error":"[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent: [404 Not Found] models/gemini-1.5-flash-001 is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."}
+{"timestamp":"2025-12-11T06:46:25.847Z","status":"success","model":"ocr","documentId":"415cfe59-34b4-4046-9d42-a167fa970b9f"}
+{"timestamp":"2025-12-11T06:46:37.366Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-11T09:49:30.890Z","status":"success","model":"ocr","documentId":"6b7f260c-9ba5-4fc1-88bb-58eb8bb01c3f"}
+{"timestamp":"2025-12-11T09:49:40.181Z","status":"success","model":"gemini-2.5-flash"}

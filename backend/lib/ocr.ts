@@ -33,8 +33,13 @@ async function geminiOcr(fileBuffer: Uint8Array | Buffer, fileType: string): Pro
   const base64 = bufferToBase64(fileBuffer);
   const mimeType = mimeFromFileType(fileType);
   const genAI = new GoogleGenerativeAI(apiKey);
-  let usedModel = "gemini-1.5-flash-latest";
-  let model = genAI.getGenerativeModel({ model: usedModel });
+  const candidates = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-flash-001",
+  ];
+  let model = genAI.getGenerativeModel({ model: candidates[0] });
 
   const prompt =
     "You are an OCR and document extraction engine.\n" +
