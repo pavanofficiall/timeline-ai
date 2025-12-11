@@ -134,7 +134,7 @@ export default function CaseWorkspacePage() {
             <div className="text-sm text-muted-foreground">No events found.</div>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

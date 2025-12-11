@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { FileUp, CheckCircle2, UploadCloud, File as FileIcon, Info } from "lucide-react";
+import { FileUp, CheckCircle2, UploadCloud, File as FileIcon, Info, Paperclip } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 
 export default function UploadPage() {
@@ -93,12 +93,20 @@ export default function UploadPage() {
                     <span className="mx-1 font-medium text-foreground">browse</span>
                     to upload
                   </div>
-                  <Input
+                  {/* Visually-hidden input to avoid native 'no file chosen' text */}
+                  <input
+                    id="file"
                     type="file"
                     accept=".pdf,.png,.jpg,.jpeg"
                     onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    className="mt-3 max-w-sm cursor-pointer"
+                    className="sr-only"
                   />
+                  <label htmlFor="file">
+                    <Button type="button" variant="secondary" className="gap-2">
+                      <Paperclip className="h-4 w-4" />
+                      Attach
+                    </Button>
+                  </label>
                 </div>
 
                 {/* Selected file summary */}
