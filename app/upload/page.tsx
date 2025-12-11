@@ -37,9 +37,7 @@ export default function UploadPage() {
     const name = f.name.toLowerCase();
     const ext = name.includes(".") ? name.split(".").pop() || "" : "";
     const byExt = (e: string) => ext === e;
-    const isImage = (/
-      jpg|jpeg|png|gif|webp|bmp|tiff
-    /i).test(ext);
+    const isImage = /(jpg|jpeg|png|gif|webp|bmp|tiff)/i.test(ext);
     if (byExt("pdf")) return { label: "PDF", Icon: FileText, classes: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-200" };
     if (byExt("doc") || byExt("docx")) return { label: "DOC", Icon: FileText, classes: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200" };
     if (byExt("xls") || byExt("xlsx") || byExt("csv")) return { label: "Sheet", Icon: FileSpreadsheet, classes: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-200" };
