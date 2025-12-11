@@ -74,3 +74,39 @@ end $$;
 -- 2) Paste this entire script and run it
 -- 3) Verify tables under public schema and the storage bucket named 'documents'
 
+-- ============================================
+-- Case Workspace additions
+-- ============================================
+
+-- cases (workspace)
+create table if not exists public.cases (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  lawyer_id text null,
+  created_at timestamptz not null default now()
+);
+
+-- Add case_id to documents
+do $$ begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'documents' and column_name = 'case_id'
+  ) then
+    alter table public.documents add column case_id uuid null references public.cases(id) on delete set null;
+    create index if not exists documents_case_id_idx on public.documents(case_id);
+  end if;
+end $$;
+
+-- Add case_id to case_events
+do $$ begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'case_events' and column_name = 'case_id'
+  ) then
+    alter table public.case_events add column case_id uuid null references public.cases(id) on delete cascade;
+    create index if not exists case_events_case_id_idx on public.case_events(case_id);
+  end if;
+end $$;
+
+-- Helpful ordering index
+create index if not exists case_events_case_id_date_idx on public.case_events(case_id, date);
