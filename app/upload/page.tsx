@@ -24,7 +24,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 
 export default function UploadPage() {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [percent, setPercent] = useState<number>(0);
@@ -53,8 +53,8 @@ export default function UploadPage() {
   const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOver(false);
-    const f = e.dataTransfer?.files?.[0];
-    if (f) setFile(f as File);
+    const next = Array.from(e.dataTransfer?.files || []).filter((f) => /\.(pdf|png|jpg|jpeg)$/i.test(f.name));
+    if (next.length) setFiles((prev) => [...prev, ...next].slice(0, 3));
   }, []);
 
   const onDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -69,28 +69,31 @@ export default function UploadPage() {
     e.preventDefault();
     setError(null);
     setResult(null);
-    if (!file) return;
+    if (!files.length) return;
     setLoading(true);
     try {
-      const fd = new FormData();
-      fd.set("file", file);
-      // Fake client-side progress for UX
-      setPercent(15);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      let json: any = null;
-      try {
-        json = await res.json();
-      } catch (_) {
-        // ignore body parse failures
+      const total = Math.min(files.length, 3);
+      let done = 0;
+      let lastJson: any = null;
+      for (let i = 0; i < total; i++) {
+        const f = files[i];
+        const fd = new FormData();
+        fd.set("file", f);
+        setPercent(Math.floor((i / total) * 100));
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        let json: any = null;
+        try { json = await res.json(); } catch (_) {}
+        if (!res.ok) {
+          const msg = json?.error || `Upload failed (${res.status})`;
+          const details = json?.details ? `: ${json.details}` : "";
+          throw new Error(`${msg}${details}`);
+        }
+        lastJson = json;
+        done++;
+        setPercent(Math.floor(((i + 1) / total) * 100));
       }
-      if (!res.ok) {
-        const msg = json?.error || `Upload failed (${res.status})`;
-        const details = json?.details ? `: ${json.details}` : "";
-        throw new Error(`${msg}${details}`);
-      }
-      setPercent(90);
-      setResult(json || { success: true });
-      setPercent(100);
+      setResult({ success: true, uploaded: done, last: lastJson });
+      setFiles([]);
     } catch (err: any) {
       setError(err?.message || "Upload failed");
     } finally {
@@ -132,7 +135,12 @@ export default function UploadPage() {
                     id="file"
                     type="file"
                     accept=".pdf,.png,.jpg,.jpeg"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    multiple
+                    onChange={(e) => {
+                      const next = Array.from(e.target.files || []).filter((f) => /\.(pdf|png|jpg|jpeg)$/i.test(f.name));
+                      if (next.length) setFiles((prev) => [...prev, ...next].slice(0, 3));
+                      e.currentTarget.value = "";
+                    }}
                     className="sr-only"
                   />
                   <Button
@@ -146,36 +154,38 @@ export default function UploadPage() {
                   </Button>
                 </div>
 
-                {/* Selected file summary */}
-                {file && (() => {
-                  const meta = getFileMeta(file);
-                  return (
-                    <div className="flex items-center gap-3 rounded-md border p-3 text-sm">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-md ${meta.classes}`}>
-                        <meta.Icon className="h-5 w-5" />
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <div className="truncate font-medium">{file.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB • {meta.label}
+                {/* Selected files summary */}
+                {files.length > 0 && (
+                  <div className="space-y-2">
+                    {files.map((f, idx) => {
+                      const meta = getFileMeta(f);
+                      return (
+                        <div key={`${f.name}-${idx}`} className="flex items-center gap-3 rounded-md border p-3 text-sm">
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-md ${meta.classes}`}>
+                            <meta.Icon className="h-5 w-5" />
+                          </div>
+                          <div className="flex-1 overflow-hidden">
+                            <div className="truncate font-medium">{f.name}</div>
+                            <div className="text-xs text-muted-foreground">{(f.size / 1024 / 1024).toFixed(2)} MB • {meta.label}</div>
+                          </div>
+                          <Button size="sm" variant="secondary" onClick={() => setFiles(files.filter((_, i) => i !== idx))} disabled={loading}>
+                            Remove
+                          </Button>
                         </div>
-                      </div>
-                      <Button size="sm" variant="secondary" onClick={() => setFile(null)} disabled={loading}>
-                        Clear
-                      </Button>
-                    </div>
-                  );
-                })()}
+                      );
+                    })}
+                  </div>
+                )}
 
                 <form onSubmit={onSubmit} className="space-y-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-xs text-muted-foreground flex items-center gap-2">
                       <Info className="h-3.5 w-3.5" />
-                      Max size ~10MB. For larger scanned PDFs, OCR fallback may take longer.
+                      Upload up to 3 files. For scanned PDFs, OCR may take longer.
                     </div>
-                    <Button type="submit" disabled={!file || loading} className="gap-2">
+                    <Button type="submit" disabled={!files.length || loading} className="gap-2">
                       {loading ? <Spinner className="h-4 w-4" /> : <FileUp className="h-4 w-4" />}
-                      {loading ? "Uploading…" : "Upload"}
+                      {loading ? "Uploading…" : `Upload ${files.length} file${files.length > 1 ? "s" : ""}`}
                     </Button>
                   </div>
 

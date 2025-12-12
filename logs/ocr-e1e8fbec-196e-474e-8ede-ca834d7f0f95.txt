@@ -1,0 +1,45 @@
+Loan Application Intake Summary
+Case Summary
+A new loan application was reviewed. Supporting documents and payments were processed. The
+following tables summarize the current status.
+Missing Documents
+Document Name
+Reason Missing
+Requested On
+ID Proof
+Not submitted
+2025-01-05
+Address Proof
+Unreadable copy
+2025-01-06
+Income Certificate User did not upload 2025-01-07
+Identified Parties
+Party Name Role
+Contact
+John Doe
+Primary Applicant +91 90000 11111
+Jane Smith
+Co Applicant
++91 90000 22222
+Mark Wilson Guarantor
++91 90000 33333
+Payments
+Payment ID Amount Status
+Date
+P001
+■10,000 Paid
+2025-01-03
+P002
+15,500 Pending 2025-01-04
+P003
+12,750
+Failed
+2025-01-05
+Events Log
+2025-01-03: Payment P001 initiated and marked Paid.
+2025-01-04: Payment P002 pending verification.
+2025-01-05: Payment P003 failed.
+2025-01-05: ID Proof requested (Not submitted).
+2025-01-06: Address Proof requested (Unreadable copy).
+2025-01-07: Income Certificate requested (User did not upload).
+End of report

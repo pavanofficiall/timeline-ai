@@ -35,7 +35,7 @@ export default function CaseWorkspacePage() {
   const [error, setError] = useState<string | null>(null)
 
   // Uploader UI (matching /upload)
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [percent, setPercent] = useState<number>(0)
   const [dragOver, setDragOver] = useState(false)
@@ -64,8 +64,16 @@ export default function CaseWorkspacePage() {
   const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     setDragOver(false)
-    const f = e.dataTransfer?.files?.[0]
-    if (f) setFile(f as File)
+    const incoming = Array.from(e.dataTransfer?.files || [])
+      .filter((f) => f.name.toLowerCase().endsWith(".pdf"))
+    if (!incoming.length) return
+    setFiles((prev) => {
+      const merged = [...prev, ...incoming]
+      if (merged.length > 3) {
+        setError("You can upload up to 3 PDF files at once.")
+      }
+      return merged.slice(0, 3)
+    })
   }, [])
 
   const onDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -100,27 +108,33 @@ export default function CaseWorkspacePage() {
     e.preventDefault()
     setError(null)
     setResultMsg(null)
-    if (!file) return
+    if (!files.length) return
     setUploading(true)
     try {
-      const fd = new FormData()
-      fd.set("file", file)
-      setPercent(15)
-      const res = await fetch(`/api/cases/${caseId}/upload`, { method: "POST", body: fd })
-      let json: any = null
-      try {
-        json = await res.json()
-      } catch (_) {}
-      if (!res.ok) {
-        const msg = json?.error || `Upload failed (${res.status})`
-        const details = json?.details ? `: ${json.details}` : ""
-        throw new Error(`${msg}${details}`)
+      const total = Math.min(files.length, 3)
+      let successCount = 0
+      for (let i = 0; i < total; i++) {
+        const f = files[i]
+        const fd = new FormData()
+        fd.set("file", f)
+        setPercent(Math.floor((i / total) * 100))
+        const res = await fetch(`/api/cases/${caseId}/upload`, { method: "POST", body: fd })
+        let json: any = null
+        try {
+          json = await res.json()
+        } catch (_) {}
+        if (!res.ok) {
+          const msg = json?.error || `Upload failed (${res.status})`
+          const details = json?.details ? `: ${json.details}` : ""
+          throw new Error(`${msg}${details}`)
+        }
+        successCount++
+        setPercent(Math.floor(((i + 1) / total) * 100))
+        // Refresh after each file to progressively show updates
+        await load()
       }
-      setPercent(90)
-      setResultMsg("Upload successful")
-      setPercent(100)
-      setFile(null)
-      await load()
+      setResultMsg(`Uploaded ${successCount} file${successCount > 1 ? "s" : ""} successfully`)
+      setFiles([])
     } catch (err: any) {
       setError(err?.message || "Upload failed")
     } finally {
@@ -152,14 +166,26 @@ export default function CaseWorkspacePage() {
               <UploadCloud className="h-7 w-7" />
             </div>
             <div className="space-y-1">
-              <div className="text-base font-medium">Drag & drop your file here</div>
-              <div className="text-xs text-muted-foreground">PDF, PNG, JPG up to ~10MB</div>
+              <div className="text-base font-medium">Drag & drop up to 3 PDFs</div>
+              <div className="text-xs text-muted-foreground">PDF only, up to ~10MB each</div>
             </div>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.png,.jpg,.jpeg"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              accept=".pdf"
+              multiple
+              onChange={(e) => {
+                const next = Array.from(e.target.files || []).filter((f) => f.name.toLowerCase().endsWith(".pdf"))
+                if (!next.length) return
+                setFiles((prev) => {
+                  const merged = [...prev, ...next]
+                  if (merged.length > 3) {
+                    setError("You can upload up to 3 PDF files at once.")
+                  }
+                  return merged.slice(0, 3)
+                })
+                e.currentTarget.value = ""
+              }}
               className="sr-only"
             />
             <Button type="button" variant="secondary" className="gap-2">
@@ -168,33 +194,37 @@ export default function CaseWorkspacePage() {
             </Button>
           </div>
 
-          {/* Selected file summary */}
-          {file && (() => {
-            const meta = getFileMeta(file)
-            return (
-              <div className="flex items-center gap-3 rounded-md border p-3 text-sm">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-md ${meta.classes}`}>
-                  <meta.Icon className="h-5 w-5" />
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  <div className="truncate font-medium">{file.name}</div>
-                  <div className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB • {meta.label}</div>
-                </div>
-                <Button size="sm" variant="secondary" onClick={() => setFile(null)} disabled={uploading}>
-                  Clear
-                </Button>
-              </div>
-            )
-          })()}
+          {/* Selected files summary */}
+          {files.length > 0 && (
+            <div className="space-y-2">
+              {files.map((f, idx) => {
+                const meta = getFileMeta(f)
+                return (
+                  <div key={`${f.name}-${idx}`} className="flex items-center gap-3 rounded-md border p-3 text-sm">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-md ${meta.classes}`}>
+                      <meta.Icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      <div className="truncate font-medium">{f.name}</div>
+                      <div className="text-xs text-muted-foreground">{(f.size / 1024 / 1024).toFixed(2)} MB • {meta.label}</div>
+                    </div>
+                    <Button size="sm" variant="secondary" onClick={() => setFiles(files.filter((_, i) => i !== idx))} disabled={uploading}>
+                      Remove
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="flex items-center justify-between gap-3">
               <div className="text-xs text-muted-foreground flex items-center gap-2">
-                <Info className="h-3.5 w-3.5" /> Max size ~10MB. For scanned PDFs, OCR may take longer.
+                <Info className="h-3.5 w-3.5" /> Upload up to 3 PDFs. For scanned files, OCR may take longer.
               </div>
-              <Button type="submit" disabled={!file || uploading} className="gap-2">
+              <Button type="submit" disabled={!files.length || uploading} className="gap-2">
                 {uploading ? <Spinner className="h-4 w-4" /> : <FileUp className="h-4 w-4" />}
-                {uploading ? "Uploading…" : "Upload"}
+                {uploading ? "Uploading…" : `Upload ${files.length} file${files.length > 1 ? "s" : ""}`}
               </Button>
             </div>
 
