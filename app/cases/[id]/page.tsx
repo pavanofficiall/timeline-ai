@@ -26,6 +26,7 @@ import {
 
 type Doc = { id: string; filename: string; uploaded_at?: string; status?: string }
 type Event = { id?: string; date?: string; title?: string; description?: string; confidence_score?: number }
+type CaseMeta = { id: string; title?: string | null }
 
 export default function CaseWorkspacePage() {
   const params = useParams<{ id: string }>()
@@ -34,6 +35,7 @@ export default function CaseWorkspacePage() {
   const [timeline, setTimeline] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [caseMeta, setCaseMeta] = useState<CaseMeta | null>(null)
 
   // Uploader UI (matching /upload)
   const [files, setFiles] = useState<File[]>([])
@@ -87,10 +89,12 @@ export default function CaseWorkspacePage() {
   async function load() {
     try {
       setLoading(true)
-      const [dRes, tRes] = await Promise.all([
+      const [mRes, dRes, tRes] = await Promise.all([
+        fetch(`/api/cases/${caseId}`).then((r) => r.json()),
         fetch(`/api/cases/${caseId}/docs`).then((r) => r.json()),
         fetch(`/api/cases/${caseId}/timeline`).then((r) => r.json()),
       ])
+      setCaseMeta(mRes?.case || null)
       setDocs(dRes?.documents || [])
       setTimeline(tRes?.timeline || [])
     } catch (e: any) {
@@ -150,6 +154,9 @@ export default function CaseWorkspacePage() {
       <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Case Workspace</h1>
+        {caseMeta?.title && (
+          <p className="mt-1 text-sm text-muted-foreground">{caseMeta.title}</p>
+        )}
         {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
       </div>
 
