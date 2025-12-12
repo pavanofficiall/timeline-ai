@@ -45,6 +45,7 @@ export default function CaseWorkspacePage() {
   const [percent, setPercent] = useState<number>(0)
   const [dragOver, setDragOver] = useState(false)
   const [resultMsg, setResultMsg] = useState<string | null>(null)
+  const [uploadSummary, setUploadSummary] = useState<{ added: number; duplicates: number; conflicts: number } | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   function getFileMeta(f: File | null) {
@@ -113,6 +114,32 @@ export default function CaseWorkspacePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseId])
 
+  // (conflict UI removed per request)
+
+  // Group conflicting events by title with their various dates and source documents
+  const conflictGroups = useMemo(() => {
+    const groups = new Map<string, { displayTitle: string; items: Event[] }>()
+    for (const ev of timeline || []) {
+      const key = (ev.title || "").trim().toLowerCase()
+      if (!key) continue
+      if (!groups.has(key)) groups.set(key, { displayTitle: ev.title || "Untitled", items: [] })
+      groups.get(key)!.items.push(ev)
+    }
+    const result: { title: string; items: Event[] }[] = []
+    for (const [k, g] of groups) {
+      const uniqueDates = new Set(g.items.map(i => (i.date ? new Date(i.date).toISOString().slice(0,10) : 'null')))
+      if (uniqueDates.size > 1) {
+        const sorted = g.items.slice().sort((a, b) => {
+          const da = a?.date ? new Date(a.date).getTime() : Number.POSITIVE_INFINITY
+          const db = b?.date ? new Date(b.date).getTime() : Number.POSITIVE_INFINITY
+          return da - db
+        })
+        result.push({ title: g.displayTitle, items: sorted })
+      }
+    }
+    return result.sort((a, b) => a.title.localeCompare(b.title))
+  }, [timeline])
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -122,6 +149,9 @@ export default function CaseWorkspacePage() {
     try {
       const total = Math.min(files.length, 3)
       let successCount = 0
+      let addedTotal = 0
+      let dupTotal = 0
+      let confTotal = 0
       for (let i = 0; i < total; i++) {
         const f = files[i]
         const fd = new FormData()
@@ -138,11 +168,15 @@ export default function CaseWorkspacePage() {
           throw new Error(`${msg}${details}`)
         }
         successCount++
+        addedTotal += Number(json?.added || 0)
+        dupTotal += Number(json?.duplicatesIgnored || 0)
+        confTotal += Number(json?.conflictsFlagged || 0)
         setPercent(Math.floor(((i + 1) / total) * 100))
         // Refresh after each file to progressively show updates
         await load()
       }
       setResultMsg(`Uploaded ${successCount} file${successCount > 1 ? "s" : ""} successfully`)
+      setUploadSummary({ added: addedTotal, duplicates: dupTotal, conflicts: confTotal })
       setFiles([])
     } catch (err: any) {
       setError(err?.message || "Upload failed")
@@ -264,7 +298,19 @@ export default function CaseWorkspacePage() {
                 <Separator className="my-3" />
                 <div className="space-y-1 text-sm">
                   <div>Timeline updates will appear below once processing completes.</div>
+                  {uploadSummary && (
+                    <div className="mt-1 text-muted-foreground">
+                      <span className="mr-3">Events added: <span className="font-medium text-foreground">{uploadSummary.added}</span></span>
+                      <span className="mr-3">Duplicates ignored: <span className="font-medium text-foreground">{uploadSummary.duplicates}</span></span>
+                      <span>Conflicts flagged: <span className={`font-medium ${uploadSummary.conflicts > 0 ? 'text-red-600' : 'text-foreground'}`}>{uploadSummary.conflicts}</span></span>
+                    </div>
+                  )}
                 </div>
+                {uploadSummary?.conflicts ? (
+                  <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-400/50 dark:bg-amber-900/20 dark:text-amber-200">
+                    {uploadSummary.conflicts} potential conflict{uploadSummary.conflicts > 1 ? 's' : ''} detected (same title with differing dates). Review relevant events in the master timeline.
+                  </div>
+                ) : null}
               </div>
             )}
           </form>
