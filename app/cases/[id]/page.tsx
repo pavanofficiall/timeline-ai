@@ -8,6 +8,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
+import { AppShell } from "@/components/layout/app-shell"
 import {
   FileUp,
   CheckCircle2,
@@ -143,7 +144,8 @@ export default function CaseWorkspacePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <AppShell>
+      <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Case Workspace</h1>
         {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
@@ -311,6 +313,7 @@ export default function CaseWorkspacePage() {
           )}
         </div>
       </Card>
-    </div>
+      </div>
+    </AppShell>
   )
 }
