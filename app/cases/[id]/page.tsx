@@ -155,7 +155,7 @@ export default function CaseWorkspacePage() {
       <div>
         <h1 className="text-2xl font-semibold">Case Workspace</h1>
         {caseMeta?.title && (
-          <p className="mt-1 text-sm text-muted-foreground">{caseMeta.title}</p>
+          <p className="mt-1 text-sm text-muted-foreground">/ {caseMeta.title}</p>
         )}
         {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
       </div>
