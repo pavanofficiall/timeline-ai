@@ -1,9 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ChevronDown, Scale } from "lucide-react"
+import { ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -62,16 +61,8 @@ export function TopNavbar() {
   }, [activeCaseId, cases])
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-border bg-card px-6">
-      {/* Left: Logo linking to homepage */}
-      <Link href="/" className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-          <Scale className="h-4 w-4 text-primary-foreground" />
-        </div>
-        <span className="text-base font-semibold">LexAI</span>
-      </Link>
-
-      {/* Right: Case Selector */}
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-end border-b border-border bg-card px-6">
+      {/* Case Selector */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="gap-2 bg-transparent">
