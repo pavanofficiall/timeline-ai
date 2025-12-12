@@ -1,0 +1,29 @@
+{"timestamp":"2025-12-10T18:31:02.313Z","status":"success","model":"ocr","documentId":"e6abb321-12b7-4f4f-98ef-e99f7919ad1b"}
+{"timestamp":"2025-12-10T18:31:02.481Z","status":"failure","model":"gemini-1.5-flash-latest","error":"[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent: [404 Not Found] models/gemini-1.5-flash-001 is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."}
+{"timestamp":"2025-12-11T06:46:25.847Z","status":"success","model":"ocr","documentId":"415cfe59-34b4-4046-9d42-a167fa970b9f"}
+{"timestamp":"2025-12-11T06:46:37.366Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-11T09:49:30.890Z","status":"success","model":"ocr","documentId":"6b7f260c-9ba5-4fc1-88bb-58eb8bb01c3f"}
+{"timestamp":"2025-12-11T09:49:40.181Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-11T16:06:20.052Z","status":"success","model":"ocr","documentId":"a61ceb06-583e-4581-a2b4-6c66e4c71cd0"}
+{"timestamp":"2025-12-11T16:06:27.677Z","status":"success","model":"ocr","documentId":"6e9c8a21-2488-45be-a793-f62f593ee903"}
+{"timestamp":"2025-12-11T16:06:49.715Z","status":"failure","model":"gemini-1.5-flash-latest","error":"[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent: [404 Not Found] models/gemini-1.5-flash-001 is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."}
+{"timestamp":"2025-12-11T16:16:07.850Z","status":"success","model":"ocr","documentId":"853a164e-3edf-4e7a-97d9-27ce421ca53a"}
+{"timestamp":"2025-12-11T16:16:10.953Z","status":"failure","model":"gemini-1.5-flash-latest","error":"[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent: [404 Not Found] models/gemini-1.5-flash-001 is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."}
+{"timestamp":"2025-12-11T16:34:24.454Z","status":"success","model":"ocr","documentId":"9955b39e-5ef5-4083-b515-be2fa1ffe6fe"}
+{"timestamp":"2025-12-11T16:34:45.067Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-11T18:19:06.187Z","status":"success","model":"ocr","documentId":"be8f0543-f9a5-4f5b-a9e9-8b9b61257fb4"}
+{"timestamp":"2025-12-11T18:19:20.134Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-11T19:00:57.381Z","status":"failure","model":"gemini-1.5-flash-latest","error":"[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent: [404 Not Found] models/gemini-1.5-flash-001 is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."}
+{"timestamp":"2025-12-11T19:01:49.209Z","status":"failure","model":"gemini-1.5-flash-latest","error":"[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent: [404 Not Found] models/gemini-1.5-flash-001 is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."}
+{"timestamp":"2025-12-11T19:13:01.468Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-11T19:22:02.129Z","status":"failure","model":"gemini-1.5-flash-latest","error":"[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent: [404 Not Found] models/gemini-1.5-flash-001 is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."}
+{"timestamp":"2025-12-11T19:47:19.468Z","status":"success","model":"ocr","documentId":"ce0bb856-15b1-40c0-ba06-1800bff0508c"}
+{"timestamp":"2025-12-11T19:47:21.305Z","status":"failure","model":"gemini-1.5-flash-latest","error":"[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent: [404 Not Found] models/gemini-1.5-flash-001 is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."}
+{"timestamp":"2025-12-12T11:02:08.701Z","status":"failure","model":"gemini-1.5-flash-latest","error":"[GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent: [404 Not Found] models/gemini-1.5-flash-001 is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."}
+{"timestamp":"2025-12-12T11:06:12.584Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-12T11:11:48.180Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-12T11:12:37.784Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-12T11:13:14.018Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-12T12:16:40.704Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-12T12:17:20.556Z","status":"success","model":"gemini-2.5-flash"}
+{"timestamp":"2025-12-12T12:17:51.382Z","status":"success","model":"gemini-2.5-flash"}

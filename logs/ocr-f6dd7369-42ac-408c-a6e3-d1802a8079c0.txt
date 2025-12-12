@@ -1,0 +1,54 @@
+Loan Application Intake Summary
+Case Summary
+A revised loan application was evaluated. Additional documents and follow-up payments were
+recorded. The updated status tables are presented below.
+Missing Documents
+Document Name
+PAN Card
+Bank Statement
+Salary Slip
+Identified Parties
+Party Name
+Rahul Verma
+Sonia Kapoor
+Arjun Malhotra
+Payments
+Payment ID
+PX01
+PX02
+PX03
+Events Log
+Reason Missing
+Incorrect file format
+Uploaded file corrupted
+Not provided by employer
+Requested On
+2025-02-02
+2025-02-03
+2025-02-04
+Role
+Primary Applicant
+Co Applicant
+Guarantor
+Amount
+'12,500
+'7,800
+'3,250
+Status
+paid
+Pending
+Failed
+Contact
++91 97777 22222
++91 96666 33333
+Date
+2025-02-01
+2025-02-02
+2025-02-03
+2025-02-01: Payment PXOI processed successfully.
+2025-02-02: Payment PX02 pending confirmatiom
+2025-02-03: Payment PX03 failed due to bank error.
+2025-02-02: PAN Card requested (Incorrect file format).
+2025-02-03: Bank Statement requested (Uploaded file corrupted).
+2025-02-04: Salary Slip requested (Not provided by employer).
+End of report

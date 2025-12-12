@@ -1,0 +1,70 @@
+import { NextRequest, NextResponse } from "next/server";
+import { ensureSupabase } from "@/backend/lib/supabase";
+
+export const runtime = "nodejs";
+
+// GET /api/cases/:id/timeline
+// Returns merged, chronologically-sorted, deduplicated timeline for the case
+export async function GET(req: NextRequest, ctx: { params?: { id?: string } }) {
+  try {
+    const segments = req.nextUrl?.pathname.split("/").filter(Boolean) || [];
+    const fallbackId = segments[segments.indexOf("cases") + 1];
+    const id = ctx?.params?.id || fallbackId;
+    if (!id) return NextResponse.json({ error: "Missing case id" }, { status: 400 });
+    const supa: any = ensureSupabase();
+    if (!supa) return NextResponse.json({ error: "Supabase not configured" }, { status: 500 });
+
+    const { data: events, error } = await supa
+      .from("case_events")
+      .select("id, case_id, document_id, date, title, description, confidence_score")
+      .eq("case_id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Sort and deduplicate (date + title + description)
+    const list = (events || []).slice().sort((a: any, b: any) => {
+      const da = a?.date ? new Date(a.date).getTime() : Number.POSITIVE_INFINITY;
+      const db = b?.date ? new Date(b.date).getTime() : Number.POSITIVE_INFINITY;
+      return da - db;
+    });
+    const dedup = new Map<string, any>();
+    for (const e of list) {
+      const key = `${e.date || ''}|${(e.title || '').toLowerCase()}|${(e.description || '').toLowerCase()}`;
+      if (!dedup.has(key)) dedup.set(key, e);
+    }
+    const timeline = [...dedup.values()];
+
+    // Infer event type for UI tagging (not persisted). Simple keyword heuristics.
+    const inferType = (title?: string | null, desc?: string | null) => {
+      const t = `${title || ''} ${desc || ''}`.toLowerCase();
+      if (/payment|paid|amount|invoice|receipt|fee/.test(t)) return "Payment";
+      if (/contract|agreement|mou|nda/.test(t)) return "Contract";
+      if (/message|email|mail|sms|call|phone|notified|notification/.test(t)) return "Message";
+      if (/hearing|order|judgment|petition|court|bench/.test(t)) return "Court";
+      if (/missing|requested|not submitted|unreadable/.test(t)) return "Missing";
+      return "Update";
+    };
+    const timelineWithType = timeline.map((e: any) => ({ ...e, type: inferType(e.title, e.description) }));
+
+    // Fetch documents for this case to build a source map, and parties across these documents
+    const { data: docs, error: docErr } = await supa
+      .from("documents")
+      .select("id, filename, file_url")
+      .eq("case_id", id);
+    if (docErr) return NextResponse.json({ error: docErr.message }, { status: 500 });
+
+    const docIds = (docs || []).map((d: any) => d.id);
+    let parties: any[] = [];
+    if (docIds.length) {
+      const { data: p, error: pErr } = await supa
+        .from("case_parties")
+        .select("id, document_id, name, role")
+        .in("document_id", docIds as any);
+      if (pErr) return NextResponse.json({ error: pErr.message }, { status: 500 });
+      parties = p || [];
+    }
+
+    return NextResponse.json({ timeline: timelineWithType, documents: docs || [], parties });
+  } catch (e: any) {
+    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+  }
+}

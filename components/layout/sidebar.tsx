@@ -21,15 +21,9 @@ import { Button } from "@/components/ui/button"
 import { useState } from "react"
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/cases", label: "Cases", icon: Briefcase },
-  { href: "/upload", label: "Upload Document", icon: Upload },
   { href: "/timeline", label: "Timeline", icon: Clock },
-  { href: "/ai-chat", label: "AI Chat", icon: MessageSquare },
-  { href: "/draft-generator", label: "Draft Generator", icon: FileText },
-  { href: "/evidence", label: "Evidence", icon: Search },
-  { href: "/missing-docs", label: "Missing Docs", icon: AlertCircle },
-  { href: "/settings", label: "Settings", icon: Settings },
+  // Trimmed irrelevant links for MVP; removed Dashboard and Upload.
 ]
 
 export function Sidebar() {
