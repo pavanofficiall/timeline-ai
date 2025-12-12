@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
 import { ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,23 +19,71 @@ const cases = [
   { id: "CASE-003", title: "Tech Solutions Ltd Dispute" },
 ]
 
+type CaseRow = { id: string; title?: string | null }
+
 export function TopNavbar() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const [cases, setCases] = useState<CaseRow[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    let mounted = true
+    async function load() {
+      try {
+        setLoading(true)
+        const res = await fetch("/api/cases")
+        const json = await res.json().catch(() => ({}))
+        if (!mounted) return
+        if (res.ok && Array.isArray(json?.cases)) setCases(json.cases as CaseRow[])
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const activeCaseId = useMemo(() => {
+    // Match /cases/:id
+    if (!pathname) return null
+    const parts = pathname.split("/").filter(Boolean)
+    const idx = parts.indexOf("cases")
+    return idx >= 0 && parts[idx + 1] ? parts[idx + 1] : null
+  }, [pathname])
+
+  const activeTitle = useMemo(() => {
+    if (!activeCaseId) return null
+    const row = cases.find((c) => c.id === activeCaseId)
+    return row?.title || null
+  }, [activeCaseId, cases])
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-end border-b border-border bg-card px-6">
       {/* Case Selector (kept). Search, notifications and profile removed per request. */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="gap-2 bg-transparent">
-            <span className="max-w-[200px] truncate">Smith vs. Johnson Corp</span>
+            <span className="max-w-[260px] truncate">
+              {activeTitle || (loading ? "Loading cases…" : "Select case")}
+            </span>
             <ChevronDown className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
-          <DropdownMenuLabel>Select Case</DropdownMenuLabel>
+          <DropdownMenuLabel>Cases</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {cases.map((c) => (
-            <DropdownMenuItem key={c.id} className="flex flex-col items-start">
-              <span className="font-medium">{c.title}</span>
+          <DropdownMenuItem onClick={() => router.push("/cases")}>All cases…</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {(cases || []).map((c) => (
+            <DropdownMenuItem
+              key={c.id}
+              className="flex flex-col items-start"
+              onClick={() => router.push(`/cases/${c.id}`)}
+            >
+              <span className="font-medium">{c.title || "Untitled"}</span>
               <span className="text-xs text-muted-foreground">{c.id}</span>
             </DropdownMenuItem>
           ))}
