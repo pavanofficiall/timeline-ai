@@ -56,11 +56,22 @@ export async function GET(_req: NextRequest, ctx: { params?: { id?: string } }) 
       const db = b?.date ? new Date(b.date).getTime() : Number.POSITIVE_INFINITY;
       return da - db;
     });
+    // Add lightweight type inference for UI tagging
+    const inferType = (title?: string | null, desc?: string | null) => {
+      const t = `${title || ''} ${desc || ''}`.toLowerCase();
+      if (/payment|paid|amount|invoice|receipt|fee/.test(t)) return "Payment";
+      if (/contract|agreement|mou|nda/.test(t)) return "Contract";
+      if (/message|email|mail|sms|call|phone|notified|notification/.test(t)) return "Message";
+      if (/hearing|order|judgment|petition|court|bench/.test(t)) return "Court";
+      if (/missing|requested|not submitted|unreadable/.test(t)) return "Missing";
+      return "Update";
+    };
+    const eventsWithType = events.map((e: any) => ({ ...e, type: inferType(e.title, e.description) }));
 
     const docMeta = (docById as any)?.data || (docByLegacy as any)?.data || null;
     return NextResponse.json({
       document: docMeta,
-      timeline: events,
+      timeline: eventsWithType,
       parties: paRes.data || [],
       payments: payRes.data || [],
       missing: missRes.data || [],

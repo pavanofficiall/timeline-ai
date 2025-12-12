@@ -311,6 +311,23 @@ export default function CaseWorkspacePage() {
                   const confLabel = conf != null ? conf.toFixed(2) : "--"
                   const srcDoc = ev.document_id ? caseDocs.find((x) => x.id === ev.document_id) : undefined
                   const relatedParties = ev.document_id ? caseParties.filter((p) => p.document_id === ev.document_id) : []
+                  const type = (ev as any).type as string | undefined
+                  const typeStyle = (() => {
+                    switch ((type || '').toLowerCase()) {
+                      case 'payment':
+                        return 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200'
+                      case 'contract':
+                        return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
+                      case 'message':
+                        return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200'
+                      case 'court':
+                        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200'
+                      case 'missing':
+                        return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-200'
+                      default:
+                        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/50 dark:text-slate-200'
+                    }
+                  })()
                   return (
                     <div key={ev.id || idx} className="relative">
                       <div className="absolute -left-[7px] top-2 h-3 w-3 rounded-full bg-primary" />
@@ -319,10 +336,9 @@ export default function CaseWorkspacePage() {
                           {d ? d.toLocaleDateString() : "Date unknown"}
                         </div>
                         <div className="mt-1 text-base font-medium flex items-center gap-2">
-                          {ev.title || "Event"}
-                          {/* Simple type tags (examples). In future, map types from extraction */}
-                          {ev.type && (
-                            <span className="inline-block rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">{ev.type}</span>
+                          {ev.title || 'Event'}
+                          {type && (
+                            <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${typeStyle}`}>{type}</span>
                           )}
                         </div>
                         {ev.description && <p className="mt-1 text-sm text-muted-foreground">{ev.description}</p>}
