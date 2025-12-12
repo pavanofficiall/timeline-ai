@@ -21,11 +21,9 @@ import { Button } from "@/components/ui/button"
 import { useState } from "react"
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/cases", label: "Cases", icon: Briefcase },
-  { href: "/upload", label: "Upload Document", icon: Upload },
   { href: "/timeline", label: "Timeline", icon: Clock },
-  // Trimmed irrelevant links for MVP
+  // Trimmed irrelevant links for MVP; removed Dashboard and Upload.
 ]
 
 export function Sidebar() {
