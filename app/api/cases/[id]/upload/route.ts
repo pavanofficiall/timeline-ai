@@ -98,10 +98,10 @@ export async function POST(req: NextRequest, ctx: { params?: { id?: string } }) 
         confidence_score: typeof e.confidence === "number" ? e.confidence : null,
         created_at: new Date().toISOString(),
       }));
-    // Deduplicate by (case_id, date, description)
+    // Deduplicate by (case_id, date, title, description) within this batch
     const unique = new Map<string, any>();
     for (const r of eventRows) {
-      const k = `${r.case_id}|${r.date || ''}|${(r.description || '').toLowerCase()}`;
+      const k = `${r.case_id}|${r.date || ''}|${(r.title || '').toLowerCase()}|${(r.description || '').toLowerCase()}`;
       if (!unique.has(k)) unique.set(k, r);
     }
     const toInsert = [...unique.values()];

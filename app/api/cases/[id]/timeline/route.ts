@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, ctx: { params?: { id?: string } }) {
       .eq("case_id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // Sort and deduplicate (date + description)
+    // Sort and deduplicate (date + title + description)
     const list = (events || []).slice().sort((a: any, b: any) => {
       const da = a?.date ? new Date(a.date).getTime() : Number.POSITIVE_INFINITY;
       const db = b?.date ? new Date(b.date).getTime() : Number.POSITIVE_INFINITY;
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, ctx: { params?: { id?: string } }) {
     });
     const dedup = new Map<string, any>();
     for (const e of list) {
-      const key = `${e.date || ''}|${(e.description || '').toLowerCase()}`;
+      const key = `${e.date || ''}|${(e.title || '').toLowerCase()}|${(e.description || '').toLowerCase()}`;
       if (!dedup.has(key)) dedup.set(key, e);
     }
 
@@ -37,4 +37,3 @@ export async function GET(req: NextRequest, ctx: { params?: { id?: string } }) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
   }
 }
-
