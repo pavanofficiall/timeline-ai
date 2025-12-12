@@ -329,9 +329,15 @@ export default function CaseWorkspacePage() {
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${confColor}`}>Confidence: {confLabel}</span>
                           {srcDoc && (
-                            <span className="inline-block rounded bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-200">
+                            <a
+                              href={`/api/documents/${srcDoc.id}/file`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-block rounded bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-blue-700 dark:text-blue-300 underline"
+                              title="Open source file"
+                            >
                               Source: {srcDoc.filename || srcDoc.id}
-                            </span>
+                            </a>
                           )}
                         </div>
                         {relatedParties.length > 0 && (
