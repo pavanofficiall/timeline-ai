@@ -75,18 +75,19 @@ export function TopNavbar() {
         <DropdownMenuContent align="end" className="w-64">
           <DropdownMenuLabel>Cases</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push("/cases")}>All cases…</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {(cases || []).map((c) => (
+          {(cases || []).slice(0, 3).map((c) => (
             <DropdownMenuItem
               key={c.id}
               className="flex flex-col items-start"
               onClick={() => router.push(`/cases/${c.id}`)}
             >
               <span className="font-medium">{c.title || "Untitled"}</span>
-              <span className="text-xs text-muted-foreground">{c.id}</span>
             </DropdownMenuItem>
           ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => router.push("/cases")}>
+            View all
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
