@@ -25,7 +25,7 @@ import {
 } from "lucide-react"
 
 type Doc = { id: string; filename: string; uploaded_at?: string; status?: string }
-type Event = { id?: string; date?: string; title?: string; description?: string; confidence_score?: number }
+type Event = { id?: string; date?: string; title?: string; description?: string; confidence_score?: number; type?: string; document_id?: string }
 type CaseMeta = { id: string; title?: string | null }
 
 export default function CaseWorkspacePage() {
@@ -33,6 +33,8 @@ export default function CaseWorkspacePage() {
   const caseId = params?.id as string
   const [docs, setDocs] = useState<Doc[]>([])
   const [timeline, setTimeline] = useState<Event[]>([])
+  const [caseParties, setCaseParties] = useState<{ id?: string; document_id?: string; name?: string; role?: string }[]>([])
+  const [caseDocs, setCaseDocs] = useState<{ id: string; filename?: string; file_url?: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [caseMeta, setCaseMeta] = useState<CaseMeta | null>(null)
@@ -97,6 +99,8 @@ export default function CaseWorkspacePage() {
       setCaseMeta(mRes?.case || null)
       setDocs(dRes?.documents || [])
       setTimeline(tRes?.timeline || [])
+      setCaseDocs(tRes?.documents || [])
+      setCaseParties(tRes?.parties || [])
     } catch (e: any) {
       setError(e?.message || "Failed to load case")
     } finally {
@@ -302,6 +306,11 @@ export default function CaseWorkspacePage() {
               <div className="space-y-6">
                 {timeline.map((ev, idx) => {
                   const d = ev.date ? new Date(ev.date) : null
+                  const conf = typeof ev.confidence_score === "number" ? ev.confidence_score : undefined
+                  const confColor = conf != null ? (conf > 0.8 ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700") : "bg-gray-100 text-gray-700"
+                  const confLabel = conf != null ? conf.toFixed(2) : "--"
+                  const srcDoc = ev.document_id ? caseDocs.find((x) => x.id === ev.document_id) : undefined
+                  const relatedParties = ev.document_id ? caseParties.filter((p) => p.document_id === ev.document_id) : []
                   return (
                     <div key={ev.id || idx} className="relative">
                       <div className="absolute -left-[7px] top-2 h-3 w-3 rounded-full bg-primary" />
@@ -309,8 +318,35 @@ export default function CaseWorkspacePage() {
                         <div className="text-sm font-semibold text-blue-600">
                           {d ? d.toLocaleDateString() : "Date unknown"}
                         </div>
-                        <div className="mt-1 text-base font-medium">{ev.title || "Event"}</div>
+                        <div className="mt-1 text-base font-medium flex items-center gap-2">
+                          {ev.title || "Event"}
+                          {/* Simple type tags (examples). In future, map types from extraction */}
+                          {ev.type && (
+                            <span className="inline-block rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">{ev.type}</span>
+                          )}
+                        </div>
                         {ev.description && <p className="mt-1 text-sm text-muted-foreground">{ev.description}</p>}
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${confColor}`}>Confidence: {confLabel}</span>
+                          {srcDoc && (
+                            <span className="inline-block rounded bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-200">
+                              Source: {srcDoc.filename || srcDoc.id}
+                            </span>
+                          )}
+                        </div>
+                        {relatedParties.length > 0 && (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer text-xs text-muted-foreground">Parties involved</summary>
+                            <ul className="mt-1 space-y-1 text-xs">
+                              {relatedParties.map((p, i) => (
+                                <li key={p.id || i}>
+                                  <span className="font-medium">{p.name || "Unnamed"}</span>
+                                  {p.role && <span className="text-muted-foreground"> — {p.role}</span>}
+                                </li>
+                              ))}
+                            </ul>
+                          </details>
+                        )}
                       </div>
                     </div>
                   )

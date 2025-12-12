@@ -31,8 +31,27 @@ export async function GET(req: NextRequest, ctx: { params?: { id?: string } }) {
       const key = `${e.date || ''}|${(e.title || '').toLowerCase()}|${(e.description || '').toLowerCase()}`;
       if (!dedup.has(key)) dedup.set(key, e);
     }
+    const timeline = [...dedup.values()];
 
-    return NextResponse.json({ timeline: [...dedup.values()] });
+    // Fetch documents for this case to build a source map, and parties across these documents
+    const { data: docs, error: docErr } = await supa
+      .from("documents")
+      .select("id, filename, file_url")
+      .eq("case_id", id);
+    if (docErr) return NextResponse.json({ error: docErr.message }, { status: 500 });
+
+    const docIds = (docs || []).map((d: any) => d.id);
+    let parties: any[] = [];
+    if (docIds.length) {
+      const { data: p, error: pErr } = await supa
+        .from("case_parties")
+        .select("id, document_id, name, role")
+        .in("document_id", docIds as any);
+      if (pErr) return NextResponse.json({ error: pErr.message }, { status: 500 });
+      parties = p || [];
+    }
+
+    return NextResponse.json({ timeline, documents: docs || [], parties });
   } catch (e: any) {
     return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
   }
